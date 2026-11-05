@@ -1,27 +1,22 @@
-//! Predict the moving target and return an aiming command in [`aim`].
-//! World axes: +X forward, +Y left, +Z up. Distances are metres and angles are radians.
-//! The simulator calls `aim` every 10 ms with a perfect observation captured in the past.
-
 pub mod sim;
 pub mod ui;
 
-/// Fixed launcher physics and timing shared by the controller, viewer, and evaluator.
 pub mod physics {
-    /// Stationary muzzle position in world metres.
+
     pub const MUZZLE_M: [f64; 3] = [0.0, 0.0, 0.3];
-    /// Projectile launch speed in metres per second.
+
     pub const MUZZLE_SPEED_M_S: f64 = 25.0;
-    /// Downward acceleration in metres per second squared.
+
     pub const GRAVITY_M_S2: f64 = 9.81;
-    /// Time from observation capture to delivery.
+
     pub const OBSERVATION_DELAY_S: f64 = 0.05;
-    /// Time from command acceptance to projectile launch.
+
     pub const LAUNCH_DELAY_S: f64 = 0.02;
-    /// Minimum interval between accepted shots.
+
     pub const FIRE_PERIOD_S: f64 = 0.25;
-    /// Projectile lifetime after launch.
+
     pub const MAX_FLIGHT_S: f64 = 2.0;
-    /// Fixed interval between controller calls.
+
     pub const CONTROL_PERIOD_S: f64 = 0.01;
 }
 
@@ -30,7 +25,6 @@ use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;
 use ui::{Color, Gizmos};
 
-/// Implement latency compensation, plate selection, and future-position aiming.
 pub fn aim(input: &Input, debug: &mut Gizmos) -> Option<Command> {
     let resolved = input.stats.hits + input.stats.misses;
     debug.overlay("Hit rate", format!("{}/{resolved}", input.stats.hits));
@@ -40,30 +34,20 @@ pub fn aim(input: &Input, debug: &mut Gizmos) -> Option<Command> {
         debug.plate(plate, input.size, Color::Cyan);
     }
 
-    // 1. Find the observation age and account for launch latency.
-    // 2. Select an armor plate before solving its trajectory.
-    // 3. Solve a trajectory with Trajectory::solve.
-    // 4. Aim at the future plate position using age, launch delay, and flight time.
-    // Optional drawings for your solution:
-    // debug.plate(predicted_plate, input.size, Color::Green);
-    // debug.trajectory(trajectory, Color::Orange);
     None
 }
 
-/// The only simulation data provided to the applicant's controller.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Input {
     pub now_s: f64,
-    /// None until the first observation's configured delivery delay has elapsed.
+
     pub observation: Option<Sample>,
     pub size: Size,
-    /// Outcomes resolved by this tick, before the current command is accepted.
+
     #[serde(default)]
     pub stats: Stats,
 }
 
-/// World yaw, upward pitch, and a request to fire at the fixed maximum rate.
-/// Angles are latched when a shot is accepted, then applied after `physics::LAUNCH_DELAY_S`.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Command {
     pub yaw_rad: f64,
@@ -71,7 +55,6 @@ pub struct Command {
     pub fire: bool,
 }
 
-/// A gravity-only projectile path. Flight time starts at launch, excluding all delays.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Trajectory {
     pub yaw_rad: f64,
@@ -80,9 +63,7 @@ pub struct Trajectory {
 }
 
 impl Trajectory {
-    /// Solve the low arc to a fixed world point at the fixed muzzle speed.
-    /// Returns `None` for an unreachable point, nonfinite input, zero flight time, or timeout.
-    /// Predict the moving target separately; this method does not compensate for delays.
+
     pub fn solve(point_m: [f64; 3]) -> Option<Self> {
         let delta: [f64; 3] = std::array::from_fn(|i| point_m[i] - physics::MUZZLE_M[i]);
         let distance_squared = delta.iter().map(|v| v * v).sum::<f64>();
@@ -92,7 +73,7 @@ impl Trajectory {
         if a <= 0.0 || discriminant < 0.0 {
             return None;
         }
-        // Rationalized smaller root of the ballistic equation in flight time squared.
+
         let flight_time_s = (2.0 * distance_squared / (a + discriminant.sqrt())).sqrt();
         if !flight_time_s.is_finite()
             || flight_time_s <= 0.0
@@ -109,7 +90,6 @@ impl Trajectory {
         })
     }
 
-    /// World position `elapsed_s` after launch; gravity produces a mathematical parabola.
     pub fn position(self, elapsed_s: f64) -> [f64; 3] {
         let velocity = self.velocity(0.0);
         std::array::from_fn(|i| {
@@ -122,7 +102,6 @@ impl Trajectory {
         })
     }
 
-    /// World velocity `elapsed_s` after launch, before subtracting the armor's velocity.
     pub fn velocity(self, elapsed_s: f64) -> [f64; 3] {
         let horizontal = physics::MUZZLE_SPEED_M_S * self.pitch_rad.cos();
         [
@@ -133,7 +112,6 @@ impl Trajectory {
     }
 }
 
-/// World axes are +X forward, +Y left, +Z up. Angles turn from +X toward +Y.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Target {
@@ -146,7 +124,7 @@ pub struct Target {
 }
 
 impl Target {
-    /// Evaluate constant world velocity and spin without integrating intermediate steps.
+
     pub fn at(self, elapsed_s: f64) -> Self {
         Self {
             x_m: self.x_m + self.vx_m_s * elapsed_s,
@@ -156,7 +134,6 @@ impl Target {
         }
     }
 
-    /// Four equally spaced plates, mounted with their top edges tilted toward the center.
     pub fn plates(self, size: Size) -> [Plate; 4] {
         std::array::from_fn(|slot| {
             let angle = self.theta_rad + slot as f64 * TAU / 4.0;
@@ -181,11 +158,10 @@ impl Target {
     }
 }
 
-/// Scoring rectangle and mounting geometry. Plates have equal radii and heights.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Size {
-    /// Positive pitch tilts the outward normal up, matching the main simulator.
+
     pub mount_pitch_rad: f64,
     pub radius_m: f64,
     pub plate_width_m: f64,
@@ -193,7 +169,6 @@ pub struct Size {
     pub plate_center_z_m: f64,
 }
 
-/// Ground-truth plate state; plate indices remain attached to the target as it turns.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Plate {
     pub center_m: [f64; 3],
@@ -204,7 +179,7 @@ pub struct Plate {
 }
 
 impl Plate {
-    /// Convert plate coordinates (right, up, outward), in metres, to world coordinates.
+
     pub fn point(self, right_m: f64, up_m: f64, outward_m: f64) -> [f64; 3] {
         std::array::from_fn(|i| {
             self.center_m[i]
@@ -215,7 +190,6 @@ impl Plate {
     }
 }
 
-/// Perfect target state at the original observation capture time.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Sample {
@@ -223,7 +197,6 @@ pub struct Sample {
     pub target: Target,
 }
 
-/// Accepted shots and their outcomes. Requests blocked by the firing rate are not shots.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Stats {
     pub shots: usize,

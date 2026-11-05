@@ -1,5 +1,3 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! Indexed MCAP snapshots, including exact controller inputs, commands, and debug drawings.
 use super::{Config, Frame};
 use anyhow::{Context, Result, ensure};
 use mcap::{Writer, records::MessageHeader};

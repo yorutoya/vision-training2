@@ -1,9 +1,7 @@
-//! Optional debug drawing helpers for lines, markers, and text overlays.
 use crate::{Plate, Size, Trajectory};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Named diagnostic colors shared by the renderer and recordings.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub enum Color {
     Cyan,
@@ -15,7 +13,7 @@ pub enum Color {
 }
 
 impl Color {
-    /// Linear RGB for scene rendering.
+
     pub fn rgb(self) -> [f32; 3] {
         match self {
             Self::Cyan => [0.05, 0.8, 1.0],
@@ -28,7 +26,6 @@ impl Color {
     }
 }
 
-/// A line in world coordinates, in metres.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Line {
     pub start_m: [f64; 3],
@@ -36,7 +33,6 @@ pub struct Line {
     pub color: Color,
 }
 
-/// A labeled world-space marker, in metres.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Point {
     pub label: String,
@@ -44,7 +40,6 @@ pub struct Point {
     pub color: Color,
 }
 
-/// Drawings last for one controller tick. The viewer restores them when seeking a recording.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Gizmos {
     pub lines: Vec<Line>,
@@ -53,7 +48,7 @@ pub struct Gizmos {
 }
 
 impl Gizmos {
-    /// Draw a world-space line. Nonfinite coordinates and excess primitives are ignored.
+
     pub fn line(&mut self, start_m: [f64; 3], end_m: [f64; 3], color: Color) {
         if self.lines.len() < 2048 && start_m.into_iter().chain(end_m).all(f64::is_finite) {
             self.lines.push(Line {
@@ -64,15 +59,12 @@ impl Gizmos {
         }
     }
 
-    /// Draw connected world-space segments.
     pub fn polyline(&mut self, points_m: &[[f64; 3]], color: Color) {
         for pair in points_m.windows(2) {
             self.line(pair[0], pair[1], color);
         }
     }
 
-    /// Draw the parabola from muzzle to the trajectory's flight time, in 48 segments.
-    /// Nonfinite angles and nonpositive or nonfinite durations are ignored.
     pub fn trajectory(&mut self, trajectory: Trajectory, color: Color) {
         if !trajectory.yaw_rad.is_finite()
             || !trajectory.pitch_rad.is_finite()
@@ -90,7 +82,6 @@ impl Gizmos {
         }
     }
 
-    /// Draw a labeled marker. Labels are limited to 120 characters.
     pub fn point(&mut self, label: &str, position_m: [f64; 3], color: Color) {
         if self.points.len() < 128 && position_m.into_iter().all(f64::is_finite) {
             self.points.push(Point {
@@ -101,7 +92,6 @@ impl Gizmos {
         }
     }
 
-    /// Draw a plate's scoring rectangle and outward normal, without a label.
     pub fn plate(&mut self, plate: Plate, size: Size, color: Color) {
         let w = size.plate_width_m / 2.0;
         let h = size.plate_height_m / 2.0;
@@ -111,7 +101,6 @@ impl Gizmos {
         self.line(plate.center_m, plate.point(0.0, 0.0, 0.12), color);
     }
 
-    /// Add a name/value pair to the scene's text overlay.
     pub fn overlay(&mut self, name: &str, value: impl ToString) {
         if self.overlays.len() < 64 {
             self.overlays.push((

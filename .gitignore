@@ -4,3 +4,9 @@ target
 .env
 .env.*
 !.env.example
+/build/
+**/cmake-build-*/
+
+/detection/results/
+/detection/*.jsonl
+.idea/

@@ -1,5 +1,3 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! Default scenario values and target model checks.
 use crate::{Size, Target};
 
 impl Default for Target {

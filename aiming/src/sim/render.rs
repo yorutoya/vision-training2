@@ -1,5 +1,3 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! Depth-tested 3D armor rendering on RXUI's device, with one shared plate geometry basis.
 use super::{Config, Frame, Outcome};
 use crate::{Plate, physics, ui::Color};
 use anyhow::Result;
@@ -203,7 +201,7 @@ impl Mesh {
     }
 
     fn armor(&mut self, plate: Plate, config: Config, layers: Layers) {
-        // AM02 housing envelope: 141 × 130 mm.
+
         let ring = [
             [-0.0625, -0.065],
             [0.0625, -0.065],
@@ -692,7 +690,6 @@ impl Renderer {
     }
 }
 
-/// Export the native renderer's viewport. ffmpeg is needed only for MP4 output.
 pub fn export(options: super::Options) -> Result<()> {
     use std::io::Write;
     let (config, frames) = if let Some(path) = options.replay {

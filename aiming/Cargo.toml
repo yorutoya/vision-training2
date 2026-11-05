@@ -6,7 +6,6 @@ rust-version = "1.98.1"
 license = "MIT OR Apache-2.0"
 publish = false
 
-# Build independently of the main workspace's native vision dependencies.
 [workspace]
 
 [features]
@@ -43,7 +42,6 @@ version = "0.25"
 default-features = false
 features = ["png"]
 optional = true
-
 
 [lints.rust]
 unsafe_code = "forbid"

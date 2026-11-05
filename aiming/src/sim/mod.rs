@@ -1,5 +1,3 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! Simulator implementation. Students only need to edit `src/lib.rs`.
 mod model;
 mod recording;
 #[cfg(feature = "viewer")]
@@ -90,10 +88,6 @@ fn generate(config: Config) -> Result<Vec<Frame>> {
     }
 }
 
-/// Run the simulator CLI, desktop viewer, or headless recording/export.
-///
-/// # Errors
-/// Returns an error if arguments, configuration, recording, or graphics setup fail.
 pub fn run() -> Result<()> {
     let Some(options) = options()? else {
         return Ok(());

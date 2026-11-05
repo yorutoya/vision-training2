@@ -91,7 +91,7 @@ fn moving_rotating_plate_is_checked_at_impact_time() -> Result<(), Box<dyn Error
     let mut config = stationary();
     let trajectory = Trajectory::solve([5.0, 0.0, 0.3]).ok_or("unreachable point")?;
     let impact_s = physics::LAUNCH_DELAY_S + trajectory.flight_time_s;
-    // Plate 0 reaches (5, 0, 0.3) at the projectile's known arrival time.
+
     config.target = Target {
         x_m: 5.25 - 0.5 * impact_s,
         y_m: -0.5 * impact_s,

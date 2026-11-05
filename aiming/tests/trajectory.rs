@@ -46,7 +46,7 @@ fn solver_rejects_unreachable_points_timeouts_and_invalid_inputs() {
     assert!(Trajectory::solve([1000.0, 0.0, 0.3]).is_none());
     assert!(Trajectory::solve([f64::NAN, 0.0, 0.3]).is_none());
     assert!(Trajectory::solve(physics::MUZZLE_M).is_none());
-    // Within ballistic range, but the low arc takes longer than the fixed lifetime.
+
     assert!(Trajectory::solve([60.0, 0.0, 0.3]).is_none());
 }
 

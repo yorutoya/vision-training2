@@ -1,5 +1,3 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! A full-window 3D viewport with native RXUI controls and frame-local overlays.
 use super::{
     Config, Frame, Options, Simulation, recording,
     render::{Camera, Layers, Renderer},

@@ -1,14 +1,10 @@
-// Simulator infrastructure. Do not edit; implement your solution in src/lib.rs.
-//! Evaluator-owned timing, projectile physics, and moving armor collision checks.
 use crate::{Command, Input, Sample, Size, Stats, Target, physics, ui::Gizmos};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::{f64::consts::FRAC_PI_2, io};
 
-/// Collision brackets are at most 1 ms wide; roots are refined by bisection.
 const COLLISION_STEP_S: f64 = 0.001;
 
-/// Scenario inputs. Defaults can be overridden individually in a JSON file.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
@@ -32,10 +28,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Bound scenario values so collision resolution and runtime remain predictable.
-    ///
-    /// # Errors
-    /// Rejects nonfinite values, nonphysical geometry, or values beyond the documented limits.
+
     pub fn validate(&self) -> io::Result<()> {
         let t = self.target;
         if [t.x_m, t.y_m, t.theta_rad, t.vx_m_s, t.vy_m_s, t.omega_rad_s]
@@ -70,7 +63,6 @@ impl Command {
     }
 }
 
-/// A shot is pending until launch, then ends at a plate, the ground, or its flight limit.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum Outcome {
@@ -80,7 +72,6 @@ pub enum Outcome {
     Miss { time_s: f64 },
 }
 
-/// One evaluator-owned projectile. Positions use the analytic gravity-only trajectory.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Shot {
     pub id: usize,
@@ -90,7 +81,7 @@ pub struct Shot {
 }
 
 impl Shot {
-    /// Evaluate the projectile after launch, including positions past an impact for diagnostics.
+
     pub fn position(self, time_s: f64) -> [f64; 3] {
         let elapsed = (time_s - self.launch_time_s).max(0.0);
         let horizontal = physics::MUZZLE_SPEED_M_S * self.command.pitch_rad.cos();
@@ -103,12 +94,10 @@ impl Shot {
         ]
     }
 
-    /// Time of ground contact or flight timeout, excluding armor collisions.
     pub fn miss_time(self) -> f64 {
         ground_time(self).min(self.launch_time_s + physics::MAX_FLIGHT_S)
     }
 
-    /// Last event time, or None while launch/flight is still pending.
     pub fn end_time(self) -> Option<f64> {
         match self.outcome {
             Outcome::Hit { time_s, .. } | Outcome::Miss { time_s } => Some(time_s),
@@ -117,7 +106,6 @@ impl Shot {
     }
 }
 
-/// Full evaluator telemetry. Current target ground truth never enters Input.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Frame {
     pub time_s: f64,
@@ -130,7 +118,6 @@ pub struct Frame {
     pub gizmos: Gizmos,
 }
 
-/// Deterministic simulation. Callback execution time does not change simulation time.
 #[derive(Debug)]
 pub struct Simulation {
     config: Config,
@@ -141,8 +128,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    /// # Errors
-    /// Returns an error when the scenario fails Config::validate.
+
     pub fn new(config: Config) -> io::Result<Self> {
         config.validate()?;
         Ok(Self {
@@ -154,8 +140,6 @@ impl Simulation {
         })
     }
 
-    /// Call the controller once and advance the evaluator by one control tick.
-    /// Return None from the controller after the scenario to drain outstanding shots.
     pub fn step(
         &mut self,
         controller: &mut impl FnMut(&Input, &mut Gizmos) -> Option<Command>,
@@ -266,7 +250,7 @@ fn plate_hit(shot: Shot, config: Config, slot: usize, begin: f64, end: f64) -> O
             .map(|i| (point[i] - plate.center_m[i]) * plate.outward_normal[i])
             .sum::<f64>()
     };
-    // Only entry from the outward face counts. Body and back faces are not scoring surfaces.
+
     if distance(begin) <= 0.0 || distance(end) > 0.0 {
         return None;
     }
